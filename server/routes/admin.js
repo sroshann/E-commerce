@@ -1,8 +1,10 @@
 var express = require('express');
 const ProductModel = require('../models/product');
+const { adminAuth } = require('../middleware/authMiddleware');
 var router = express.Router();
 
-router.get('/', async function (req, res, next) {
+// ADMIN HOME
+router.get('/', adminAuth, async function (req, res, next) {
 
     try {
         
@@ -13,17 +15,20 @@ router.get('/', async function (req, res, next) {
 
 });
 
-router.post('/addproduct', async (request, response, next) => {
+// ADD PRODUCTS
+router.post('/addproduct', adminAuth, async (request, response, next) => {
 
     try {
 
         let schemaObj = new ProductModel({
 
             name : request.body?.name,
+            label : request.body?.label,
             price : request.body?.price,
             description : request.body?.description,
             category : request.body?.category,
-            image : request.body?.image   
+            images : request.body?.images,
+            quantity : request.body?.quantity   
 
         })
         

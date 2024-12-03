@@ -20,20 +20,23 @@ const userSchema = new mongoose.Schema({
         require : true
 
     },
+    phoneNumber : {
+
+        type : String,
+        require : true
+
+    },
+    address : { type : String },
     password : {
 
         type : String,
         require : true
 
     },
-    confirmpassword : {
-
-        type : String,
-        require : true
-
-    }
+    profileImage : { type : String, },
+    isAdmin : { type : Boolean }
 
 })
 
-const UserModel = mongoose.model('Users',userSchema)
+const UserModel = mongoose.model.Users || mongoose.model('Users',userSchema)
 module.exports = UserModel
