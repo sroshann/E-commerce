@@ -76,7 +76,6 @@ router.post('/addToCart', userAuth, async ( request, response, next ) => {
 
         }
 
-        console.log( 'Cart response = ', resultResponse )
         response.status( 200 ).json({ message : 'Product added to cart' })
 
     } catch ( error ) {
@@ -141,7 +140,9 @@ router.get('/getCartedProducts/:userId', userAuth, async ( request, response, ne
             }
 
         ])
-        if( cartedProducts.length === 0 ) return response.status( 200 ).json({ warning : 'Cart is empty' })
+        console.log('Carted produts = ', cartedProducts)
+        if( cartedProducts.length === 0 || cartedProducts[0].cartedProducts.length === 0) 
+            return response.status( 200 ).json({ warning : 'Cart is empty' })
         else {
         
             // Aggregation always return an array
@@ -275,7 +276,9 @@ router.get('/getWishlightedProducts/:userId', userAuth, async ( request, respons
             }
 
         ])
-        if ( wishlightedProducts.length === 0 ) return response.status(200).json({ warning : 'Wishlight is empty' })
+        console.log('Wishlighted products = ',wishlightedProducts)
+        if ( wishlightedProducts.length === 0 || wishlightedProducts[0].wishlightedProducts.length === 0 ) 
+            return response.status(200).json({ warning : 'Wishlight is empty' })
         else {
     
             // Aggregation always return an array
@@ -307,6 +310,45 @@ router.get('/getWishlightedProductsIds/:userId', userAuth, async ( request, resp
 
         console.log( error )
         response.status( 500 ).json({ error : 'Error occured while getting wishlighted product ids' })
+
+    }
+
+})
+
+router.delete('/removeProduct/:option/:userId/:productId', userAuth, async ( request, response, next ) => {
+
+    try {
+
+        const { option, userId, productId } = request.params
+        if( option === 'cart' ) {
+
+            // This query will direclty remove the product id from the document array
+            const updateResponse = await CartModel.updateOne(
+
+                { user: userId },
+                { $pull: { cartedProducts: productId } } // Removes the product directly
+
+            )
+            if( updateResponse.modifiedCount === 0 ) return response.status(200).json({ warning : 'Product not found in cart' })
+
+        } else if ( option === 'wishlight' ) {
+
+            const updateResponse = await WishlightModel.updateOne(
+
+                { user : userId },
+                { $pull : { wishlightedProducts : productId } }
+
+            )
+            if( updateResponse.modifiedCount === 0 ) return response.status(200).json({ warning : 'Product not found in wishlight' })
+
+        }
+
+        response.status( 200 ).json({ message : `Product removed from ${ option }` })
+
+    } catch ( error ) {
+
+        console.log( error )
+        response.status(500).json({ error : 'Error occured while removing the product' })
 
     }
 
