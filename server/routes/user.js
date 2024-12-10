@@ -129,10 +129,12 @@ router.get('/getCartedProducts/:userId', userAuth, async ( request, response, ne
         if( cartedProducts.length === 0 || cartedProducts[0].productDetails.length === 0) 
             return response.status( 200 ).json({ warning : 'Cart is empty' })
         else {
-        
-            // Aggregation always return an array
-            let cartedItems = cartedProducts[0].productDetails 
-            response.status( 200 ).json({ message : cartedItems })
+            
+            let cartedItems = cartedProducts[0].productDetails // Aggregation always return an array
+            // Calculating the total price of cart
+            // 0 is the inintial value of sum
+            const totalAmount = cartedItems.reduce( ( sum, item ) => sum + ( item.price * item.count ), 0 ) 
+            response.status( 200 ).json({ message : cartedItems, totalAmount })
     
         }
 
@@ -164,6 +166,7 @@ router.put('/changeProductCount', userAuth, async ( request, response, next ) =>
     try {
 
         const { userId, productId, increment } = request.body
+        console.log( request.body )
         // This query fetches quantity of the product form 'products' collection and 
         // the current count stored in 'cart' collection
         const cartData = await CartModel.aggregate([
