@@ -3,6 +3,8 @@ const ProductModel = require('../models/product');
 const CartModel = require('../models/cart');
 const { userAuth } = require('../middleware/authMiddleware');
 const WishlightModel = require('../models/wishlights');
+const userHelperFunctions = require('../helpers/userHelper');
+const UserModel = require('../models/user');
 var router = express.Router();
 
 // GET home page
@@ -44,7 +46,6 @@ router.post('/addToCart', userAuth, async ( request, response, next ) => {
         }
 
         const userCart = await CartModel.findOne({ user : userId })
-        let resultResponse
         if( userCart ) {
 
             // Checking whether the product is already exist in the user cart list
@@ -53,7 +54,7 @@ router.post('/addToCart', userAuth, async ( request, response, next ) => {
             else {
         
                 // Update the existing cart 
-                resultResponse = await CartModel.updateOne( 
+                await CartModel.updateOne( 
                     
                     { user : userId }, 
                     { $push : { cartedProducts : productObject } }
@@ -71,7 +72,7 @@ router.post('/addToCart', userAuth, async ( request, response, next ) => {
                 cartedProducts : productObject
 
             })
-            resultResponse = await schemaObj.save()
+            await schemaObj.save()
 
         }
 
@@ -87,45 +88,7 @@ router.get('/getCartedProducts/:userId', userAuth, async ( request, response, ne
     try {
 
         const { userId } = request.params
-        const cartedProducts = await CartModel.aggregate([
-
-            { $match : { user : userId } },
-            { $unwind : '$cartedProducts' },
-            { $project : {
-
-                productId : { $toObjectId: '$cartedProducts.productId' },
-                count : '$cartedProducts.count'
-
-            }},
-            { $lookup : {
-
-                from : 'products',
-                localField : 'productId',
-                foreignField : '_id',
-                as : 'productDetails'
-                
-            }},
-            { $project : {
-
-                count : 1,
-                productDetails : 1
-
-            }},
-            {
-                $group: {
-                  _id: '$productId', // Group by productId
-                  productDetails: {
-                    $push: {
-                      $mergeObjects: [
-                        { $arrayElemAt: ['$productDetails', 0] }, // Extract product details object
-                        { count: '$count' }, // Add quantity
-                      ],
-                    },
-                  },
-                },
-            }
-
-        ])
+        const cartedProducts = await userHelperFunctions.getCartedProducts( userId ) // This function is used to get carted products
         if( cartedProducts.length === 0 || cartedProducts[0].productDetails.length === 0) 
             return response.status( 200 ).json({ warning : 'Cart is empty' })
         else {
@@ -149,11 +112,7 @@ router.get('/getCartedProductsIds/:userId', userAuth, async ( request, response,
 
         const { userId } = request.params
         const userCart = await CartModel.findOne({ user : userId })
-        if( userCart ) {
-
-            response.status( 200 ).json({ message : userCart.cartedProducts })
-
-        }
+        if( userCart ) response.status( 200 ).json({ message : userCart.cartedProducts })
         else response.status( 200 ).json({ warning : 'Cart is empty' })
 
     } catch( error ) { response.status( 500 ).json({ error : 'Error occured while getting carted products ids' }) }
@@ -166,45 +125,10 @@ router.put('/changeProductCount', userAuth, async ( request, response, next ) =>
     try {
 
         const { userId, productId, increment } = request.body
-        console.log( request.body )
-        // This query fetches quantity of the product form 'products' collection and 
+
+        // Function used to get quantity of product form 'products' collection and 
         // the current count stored in 'cart' collection
-        const cartData = await CartModel.aggregate([
-
-            { $match: { user: userId } },
-            { $unwind: '$cartedProducts' },
-            { $match: { 'cartedProducts.productId': productId } },
-            {
-
-                $addFields: {
-                    productObjectId: { $toObjectId: '$cartedProducts.productId' } // Convert productId to ObjectId
-                }
-
-            },
-            {
-
-                $lookup: {
-                    from: 'products', // Replace with your actual product collection name
-                    localField: 'productObjectId',
-                    foreignField: '_id',
-                    as: 'productDetails'
-                }
-
-            },
-            { $unwind: '$productDetails' },
-            {
-
-                $project: {
-
-                    'cartedProducts.count': 1,
-                    'productDetails.quantity': 1
-
-                }
-
-            }
-
-        ])
-
+        const cartData = await userHelperFunctions.getCartedCountAndProductQuantity( userId, productId )
         const currentCartCount = cartData[0].cartedProducts.count;
         const currentStock = cartData[0].productDetails.quantity;
 
@@ -287,54 +211,8 @@ router.get('/getWishlightedProducts/:userId', userAuth, async ( request, respons
     try {
 
         const { userId } = request.params
-        const wishlightedProducts = await WishlightModel.aggregate([
-
-            { $match : { user : userId } },
-            {
-
-                $lookup : {
-
-                    from : 'products', // collection name which is to be joined
-                    let : { prdctLstOfWshlghts : '$wishlightedProducts' }, // storing the carted product array into a variable,
-                    pipeline : [{
-
-                        $match : {
-
-                            $expr : {
-
-                                $in : [
-
-                                    '$_id',
-                                    {
-
-                                        $map : {
-
-                                            // Iterates over each value in $$prdctLstOfWshlghts (the carted products array).
-                                            // Converts each string (productId) into an ObjectId using $toObjectId.
-                                            // the product ids are stored in cart collection as string format 
-                                            input: '$$prdctLstOfWshlghts', 
-                                            as: 'productId', 
-                                            in: { $toObjectId: '$$productId' } 
-
-                                        }
-
-                                    }
-
-                                ]
-
-                            }
-
-                        }
-
-                    }],
-                    as : 'wishlightedItems'
-
-                }
-
-            }
-
-        ])
-        console.log('Wishlighted products = ',wishlightedProducts)
+        // Function used to get wishlighted products
+        const wishlightedProducts = await userHelperFunctions.getWishlightedProducts( userId ) 
         if ( wishlightedProducts.length === 0 || wishlightedProducts[0].wishlightedProducts.length === 0 ) 
             return response.status(200).json({ warning : 'Wishlight is empty' })
         else {
@@ -363,7 +241,7 @@ router.get('/getWishlightedProductsIds/:userId', userAuth, async ( request, resp
 
 })
 
-// To remove product from cart and wishlights
+// Remove product from cart and wishlights
 router.delete('/removeProduct/:option/:userId/:productId', userAuth, async ( request, response, next ) => {
 
     try {
@@ -395,6 +273,45 @@ router.delete('/removeProduct/:option/:userId/:productId', userAuth, async ( req
         response.status( 200 ).json({ message : `Product removed from ${ option }` })
 
     } catch ( error ) { response.status(500).json({ error : 'Error occured while removing the product' }) }
+
+})
+
+// Get checkout order data
+router.get('/getCheckOutOrderData/:userId/:option/:productId', userAuth, async ( request, response, next ) => {
+
+    try {
+
+        let productData
+        let productsPrice
+        const { userId, option, productId } = request.params
+
+        // Getting user details
+        const user = await UserModel.findOne({ _id : userId })
+        const userDetails = { phoneNumber : user.phoneNumber, email : user.email, address : user.address }
+
+        // Getting product details
+        if( option === 'cart' ) {
+
+            const cartData = await userHelperFunctions.getCartedProducts( userId ) // Function used to get cart data
+            productData = cartData[0].productDetails
+            productsPrice = productData.reduce( ( sum, item ) => sum + ( item.count * item.price ), 0 )
+
+        }
+        else {
+
+            productData = await ProductModel.findOne({ _id : productId })
+            productsPrice = productData.price
+
+        }
+
+        response.status( 200 ).json({ userDetails, productData, productsPrice })
+
+    } catch ( error ) {
+
+        console.log( error )
+        response.status( 500 ).json({ error : 'Error occured while getting checkout data' })
+
+    }
 
 })
 

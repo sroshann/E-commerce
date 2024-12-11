@@ -10,7 +10,7 @@ const Mailgen = require('mailgen')
 const { EMAIL, PASSWORD, JWT_SECRET } = require('../env')
 const { resetPass, userAuth } = require('../middleware/authMiddleware')
 
-// SIGNUP
+// Signup
 router.post('/signup', async ( request, response, next ) => {
 
     try {
@@ -58,16 +58,11 @@ router.post('/signup', async ( request, response, next ) => {
 
         }
 
-    } catch( error ) {
-
-        console.error( error )
-        response.status( 500 ).json({ error: 'Error occurred while creating user' })
-
-    }
+    } catch( error ) { response.status( 500 ).json({ error: 'Error occurred while creating user' }) }
 
 })
 
-// LOGIN
+// Login
 router.post('/login', async ( request, response, next ) => {
 
     try {
@@ -105,22 +100,13 @@ router.post('/login', async ( request, response, next ) => {
             }
             else response.status( 200 ).json({ error : 'Invalid password' })
 
-        } else {
+        } else response.status( 500 ).json({ error : 'User not found' })
 
-            response.status( 500 ).json({ error : 'User not found' })
-
-        }
-
-    } catch ( error ) {  
-
-        console.error( 'Error while login ',error )
-        response.status( 500 ).json({ error : 'Error occured while login' })
-
-    }
+    } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while login' }) }
 
 })
 
-// MAIL OTP
+// Mail OTP
 router.get('/mailOTP', resetPass, async ( request , response , next ) => {
 
     try {
@@ -192,25 +178,14 @@ router.get('/mailOTP', resetPass, async ( request , response , next ) => {
 
         }
         
-        transporter.sendMail( message ).then( () => {
+        transporter.sendMail( message ).then( () => response.status( 200 ).json({ message : 'OTP send to your registered mail' }))
+        .catch( error => response.status( 500 ).json({ error : 'Error occured while mailing OTP' }))
 
-            response.status( 200 ).json({ message : 'OTP send to your registered mail' })
-
-        }).catch( error => {
-
-            response.status( 500 ).json({ error : 'Error occured while mailing OTP' })
-
-        })
-    } catch ( error ) {
-
-        console.log('Error on mailing OTP', error)
-        response.status(500).json({ error: 'Error occurred while mailing OTP' })
-
-    }
+    } catch ( error ) { response.status(500).json({ error: 'Error occurred while mailing OTP' }) }
 
 })
 
-// VALIDATE OTP
+// Validate OTP
 router.post('/validateOTP', resetPass, async ( request, response, next ) => {
 
     try {
@@ -224,16 +199,11 @@ router.post('/validateOTP', resetPass, async ( request, response, next ) => {
 
         } else { response.status(500).json({ error: 'OTP mismatches, check the mail again' }) }
 
-    } catch( error ) {
-
-        console.log('Error on validating OTP', error)
-        response.status(500).json({ error: 'Error occurred while validating OTP' })
-
-    }
+    } catch( error ) { response.status(500).json({ error: 'Error occurred while validating OTP' }) }
 
 })
 
-// CHANGE PASSWORD
+// Change password
 router.put('/changePassword', resetPass, async ( request, response, next ) =>{
 
     try {
@@ -251,16 +221,11 @@ router.put('/changePassword', resetPass, async ( request, response, next ) =>{
 
         } else response.status(500).json({ error: 'Some error on updating password' })
 
-    } catch ( error ) {
-
-        console.log('Error on updating password', error)
-        response.status(500).json({ error: 'Error on updating password' })
-
-    }
+    } catch ( error ) { response.status(500).json({ error: 'Error occured while updating password' }) }
 
 })
 
-// GET USER DETAILS
+// Get user details
 router.post('/getUserDetails', userAuth, async ( request, response, next ) => {
 
     try {
@@ -269,12 +234,7 @@ router.post('/getUserDetails', userAuth, async ( request, response, next ) => {
         if( user ) return response.status(200).json({ user })
         else response.status(500).json({ error: 'User not found' })
 
-    } catch ( error ) {
-
-        console.log('Error on getting user details', error)
-        response.status(500).json({ error: 'Error on getting user details' })
-
-    }
+    } catch ( error ) { response.status(500).json({ error: 'Error on getting user details' }) }
 
 })
 

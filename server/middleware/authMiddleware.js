@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken')
 const { JWT_SECRET } = require('../env')
 const { storeTemporaryVariables } = require('../helpers/auth')
 
-// ADMIN
+// Admin
 const adminAuth = ( request, response, next ) => {
 
     try {
@@ -20,7 +20,7 @@ const adminAuth = ( request, response, next ) => {
 
 }
 
-// USER
+// User
 const userAuth = ( request, response, next ) => {
 
     try {
@@ -28,17 +28,25 @@ const userAuth = ( request, response, next ) => {
         const token = request.headers.authorization.split(" ")[1]
         if( token ) {
 
-            const decodedToken = jwt.verify( token, JWT_SECRET )
-            if( decodedToken ) next()
-            else return response.status( 500 ).json({ error : 'Please login' })
+            jwt.verify( token, JWT_SECRET, ( error ) => {
+
+                if( error ) {
+
+                    if( error.name === 'TokenExpiredError' ) 
+                        return response.status( 500 ).json({ error : 'Session expired please login' })
+                    else return response.status( 500 ).json({ error : 'Invalid token' })
+
+                } else next()
+
+            } )
  
-        } else return response.status( 500 ).json({ error : 'Please login' })
+        } else return response.status( 500 ).json({ error : 'Session not found please log in' })
 
     } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while checking the user' }) }
 
 }
 
-// RESET PASSWORD
+// Rest password
 const resetPass = ( request, response, next ) => {
 
     try {
