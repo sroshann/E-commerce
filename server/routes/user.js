@@ -3,6 +3,7 @@ const ProductModel = require('../models/product');
 const CartModel = require('../models/cart');
 const { userAuth } = require('../middleware/authMiddleware');
 const WishlightModel = require('../models/wishlights');
+const OrderModel = require('../models/order')
 const userHelperFunctions = require('../helpers/userHelper');
 const UserModel = require('../models/user');
 var router = express.Router();
@@ -306,13 +307,98 @@ router.get('/getCheckOutOrderData/:userId/:option/:productId', userAuth, async (
 
         response.status( 200 ).json({ userDetails, productData, productsPrice })
 
-    } catch ( error ) {
+    } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while getting checkout data' }) }
 
-        console.log( error )
-        response.status( 500 ).json({ error : 'Error occured while getting checkout data' })
+})
 
-    }
+// Place order
+router.post('/placeOrder', userAuth, async ( request, response, next ) => {
 
+    try {
+
+        let productData, productsPrice
+        // The address can be taken from user db, but if the user is given an address
+        // which is not available in user db, so it must be passed as parameters
+        const { address, userId, option, productId, paymentType } = request.body
+
+        // Getting user details
+        const user = await UserModel.findOne({ _id : userId })
+        const { email, phoneNumber } = user
+
+        // Getting product details
+        if( option === 'cart' ) {
+
+            const cartData = await userHelperFunctions.getCartedProducts( userId ) // Function used to get cart data
+            productsPrice = cartData[0].productDetails.reduce( ( sum, item ) => sum + ( item.count * item.price ), 0 )
+            const cartedIds = await CartModel.findOne({ user : userId })
+            productData = cartedIds.cartedProducts 
+
+        }
+        else {
+
+            const product = await ProductModel.findOne({ _id : productId })
+            productData = product._id
+            productsPrice = productData.price
+
+        }
+
+        const schemaObj = new OrderModel({
+
+            user : userId,
+            phoneNumber,
+            email,
+            address,
+            paymentMethod : paymentType,
+            products : productData,
+            amountToPay : productsPrice,
+            status : paymentType === 'COD' ? 'placed' : 'pending'
+
+        })
+
+        await schemaObj.save().then( async () => {
+
+            // When the order is placed, the product should removed from the cart
+            // If the option is cart directly delete the cart object
+            // Else update the cart collection on removing only the ordered product from carted products
+            // Also on placing order the quantity of the curresponding product should be decreased
+            // If the quantity becomes 0 it must be deleted
+            if( option === 'cart' ) {
+
+                const updatePromises = productData.map( async (item) => {
+
+                    await ProductModel.updateOne(
+
+                        { _id: item.productId },
+                        { $inc: { quantity: -item.count } }
+
+                    )
+                    const product = await ProductModel.findOne({ _id : item.productId })
+                    if (product && product.quantity <= 0) await ProductModel.deleteOne({ _id: item.productId })
+
+                })
+            
+                // Wait for all updates to complete
+                await Promise.all(updatePromises);
+                await CartModel.deleteOne({ user : userId }) // Deleting the cart collection
+
+            }
+            else {
+        
+                // Need to handle this situation
+                await CartModel.updateOne(
+
+                    { user: userId },
+                    { $pull: { cartedProducts: { productId : productId } } } // Removes the product directly
+    
+                )
+                
+            }
+            response.status( 200 ).json({ message : 'Order placed successfully' })
+
+        })
+
+    } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while placing order' }) }
+    
 })
 
 module.exports = router;
