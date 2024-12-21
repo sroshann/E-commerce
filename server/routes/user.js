@@ -342,15 +342,18 @@ router.post('/placeOrder', userAuth, async ( request, response, next ) => {
 
         }
 
+        // 3 represents platform fee and 40 represents delivery charge
+        // If the product price is greater 200 delivery charge will be FREE otherwise 40Rs is charged
         const schemaObj = new OrderModel({
 
+            createdAt : new Date(),
             user : userId,
             phoneNumber,
             email,
             address,
             paymentMethod : paymentType,
             products : productData,
-            amountToPay : productsPrice,
+            amountToPay : productsPrice > 200 ? productsPrice + 3 : productsPrice + 43,
             status : paymentType === 'COD' ? 'placed' : 'pending'
 
         })
@@ -399,6 +402,62 @@ router.post('/placeOrder', userAuth, async ( request, response, next ) => {
 
     } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while placing order' }) }
     
+})
+
+// Get ordereded products
+router.get('/getOrderedProducts/:userId', userAuth, async ( request, response, next ) => {
+
+    try {
+
+        const { userId } = request.params
+        const orderDetails = await userHelperFunctions.getOrderedProducts( userId )
+        if( orderDetails ) response.status( 200 ).json({ orders : orderDetails[0].productDetails })
+        else response.status(200).json({ warning : 'No orders are placed yet' })
+
+    } catch ( error ) { response.status(500).json({ error : 'Error occured while getting ordered products' }) }
+
+})
+
+// Get ordered details
+router.get('/getOrderDetails/:orderId', userAuth, async( request, response, next ) => {
+
+    try{
+
+        const { orderId } = request.params 
+        const orderData = await OrderModel.findOne({ _id : orderId }) // Getting order details
+        const { products, ...rest } = orderData._doc
+        const orderedProducts = await userHelperFunctions.getOrderedProducts( rest._id ) // Getting products details in order details
+
+        const { createdAt } = rest
+        // To set time as Moth Date Year, the month is in letters
+        const formattedDate = new Intl.DateTimeFormat('en-US', {
+
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+
+        }).format( createdAt )
+        // To remove seconds from time
+        const formattedTime = createdAt.toLocaleTimeString('en-US', {
+
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+
+        })
+
+        const orderedData = {
+
+            ...rest,
+            orderedDate : formattedDate,
+            orderedTime : formattedTime,
+            products : orderedProducts[0].productDetails
+
+        }
+        response.status(200).json({ orderData : orderedData })
+
+    } catch( error ) { response.status(500).json({ error : 'Error occured while getting order details' }) }
+
 })
 
 module.exports = router;

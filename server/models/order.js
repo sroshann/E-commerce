@@ -2,6 +2,12 @@ const mongoose = require('mongoose')
 
 const orderSchema = new mongoose.Schema({
 
+    createdAt : {
+
+        type : Date,
+        require : true
+
+    },
     user : {
 
         type : String,
