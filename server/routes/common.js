@@ -1,5 +1,6 @@
 const express = require('express')
 const UserModel = require('../models/user')
+const ProductModel = require('../models/product')
 const router = express.Router()
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
@@ -235,6 +236,25 @@ router.post('/getUserDetails', userAuth, async ( request, response, next ) => {
         else response.status(500).json({ error: 'User not found' })
 
     } catch ( error ) { response.status(500).json({ error: 'Error on getting user details' }) }
+
+})
+
+// Get product details
+router.get('/getProductDetails/:productId', async ( request, response, next ) => {
+
+    try {
+
+        const { productId } = request.params
+        const productDetails = await ProductModel.findOne({ _id : productId })
+        if( productDetails ) return response.status(200).json({ productDetails })
+        else return response.status(200).json({ warning : "Could'nt find the product" })
+
+    } catch ( error ) {
+
+        console.log( error )
+        response.status(500).json({ error : 'Error occured while getting product details' })
+
+    }
 
 })
 

@@ -133,11 +133,9 @@ router.put('/changeProductCount', userAuth, async ( request, response, next ) =>
         const currentCartCount = cartData[0].cartedProducts.count;
         const currentStock = cartData[0].productDetails.quantity;
 
-        // Checking whether the item count exceeds current stock quantity
-        if( currentCartCount + increment > currentStock ) 
+        if( currentCartCount + increment > currentStock ) // Checking whether the item count exceeds current stock quantity
             return response.status( 200 ).json({ warning : 'Item count exceeded current stock quantity' })
-        // Checking whether the product quantity becomes 0
-        else if ( currentCartCount + increment === 0 )
+        else if ( currentCartCount + increment === 0 ) // Checking whether the product quantity becomes 0
             return response.status( 200 ).json({ warning : 'Item count reached minimum quanitity' })
         else {
 
@@ -175,7 +173,7 @@ router.post('/addToWishlights', userAuth, async ( request, response, next ) => {
 
             // Checking whether the product is already added to list of wishlights
             const alreadyAdded = userWishlight.wishlightedProducts.includes( productId )
-            if( alreadyAdded ) return response.status(200).json({ warning : 'Products already added to wishlights' })
+            if( alreadyAdded ) return response.status(200).json({ warning : 'Product already added to wishlights' })
             else {
         
                 // Update the existing wishlight
@@ -301,7 +299,9 @@ router.get('/getCheckOutOrderData/:userId/:option/:productId', userAuth, async (
         else {
 
             productData = await ProductModel.findOne({ _id : productId })
+            productData = { ...productData._doc, count: 1 } // Setting up the count of product as 1
             productsPrice = productData.price
+            productData = [ productData ] // Check out order component render products as arrays
 
         }
 
@@ -337,8 +337,8 @@ router.post('/placeOrder', userAuth, async ( request, response, next ) => {
         else {
 
             const product = await ProductModel.findOne({ _id : productId })
-            productData = product._id
-            productsPrice = productData.price
+            productData = { productId : product._id, count : 1 } // The product details are stored as array of objects in db
+            productsPrice = product.price
 
         }
 
@@ -400,7 +400,12 @@ router.post('/placeOrder', userAuth, async ( request, response, next ) => {
 
         })
 
-    } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while placing order' }) }
+    } catch ( error ) { 
+        
+        console.log( error )
+        response.status( 500 ).json({ error : 'Error occured while placing order' }) 
+    
+    }
     
 })
 
@@ -411,10 +416,10 @@ router.get('/getOrderedProducts/:userId', userAuth, async ( request, response, n
 
         const { userId } = request.params
         const orderDetails = await userHelperFunctions.getOrderedProducts( userId )
-        if( orderDetails ) response.status( 200 ).json({ orders : orderDetails[0].productDetails })
+        if( orderDetails.length > 0 ) response.status( 200 ).json({ orders : orderDetails[0].productDetails })
         else response.status(200).json({ warning : 'No orders are placed yet' })
 
-    } catch ( error ) { response.status(500).json({ error : 'Error occured while getting ordered products' }) }
+    } catch ( error ) { response.status(500).json({ error : 'Error occured on getting ordered products' }) }
 
 })
 
