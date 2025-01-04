@@ -358,7 +358,7 @@ router.post('/placeOrder', userAuth, async ( request, response, next ) => {
 
         })
 
-        await schemaObj.save().then( async () => {
+        await schemaObj.save().then( async ( saveResponse ) => {
 
             // When the order is placed, the product should removed from the cart
             // If the option is cart directly delete the cart object
@@ -396,16 +396,18 @@ router.post('/placeOrder', userAuth, async ( request, response, next ) => {
                 )
                 
             }
-            response.status( 200 ).json({ message : 'Order placed successfully' })
 
-        })
+            response.status( 200 ).json({ 
 
-    } catch ( error ) { 
+                message : 'Order placed successfully', 
+                orderId: saveResponse._id, 
+                status: saveResponse.orderStatus
+            
+            })
+                      
+        })     
         
-        console.log( error )
-        response.status( 500 ).json({ error : 'Error occured while placing order' }) 
-    
-    }
+    } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while placing order' }) }
     
 })
 
@@ -462,6 +464,31 @@ router.get('/getOrderDetails/:orderId', userAuth, async( request, response, next
         response.status(200).json({ orderData : orderedData })
 
     } catch( error ) { response.status(500).json({ error : 'Error occured while getting order details' }) }
+
+})
+
+// Cancel order
+router.put('/cancelOrder', userAuth, async ( request, response, next ) => {
+
+    try {
+
+        const { orderId } = request.body
+        const orderData = await OrderModel.findOne({ _id : orderId })
+        if( orderData.status === 'cancelled' ) return response.status( 200 ).json({ warning : 'Order already cancelled' })
+        else {
+    
+            const updateResponse = await OrderModel.updateOne(
+
+                { _id : orderId },
+                { $set : { status : 'cancelled' } }
+
+            )
+            if( updateResponse.modifiedCount === 0 ) response.status( 200 ).json({ warning : 'Order not found' })
+            else response.status( 200 ).json({ message : 'Product cancelled successfully' })    
+    
+        }
+
+    } catch( error ) { response.status( 500 ).json({ error : 'Error occured while canceling order' }) }
 
 })
 
