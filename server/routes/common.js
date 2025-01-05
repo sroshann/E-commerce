@@ -134,8 +134,8 @@ router.get('/mailOTP', resetPass, async ( request , response , next ) => {
             }
 
         }
+        
         let transporter = nodemailer.createTransport( config )
-
         let mailGenerator = new Mailgen({
 
             theme : 'default',

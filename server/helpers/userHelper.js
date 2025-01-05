@@ -1,6 +1,9 @@
+const Mailgen = require("mailgen")
+const { EMAIL, PASSWORD } = require("../env")
 const CartModel = require("../models/cart")
 const OrderModel = require("../models/order")
 const WishlightModel = require("../models/wishlights")
+const nodemailer = require('nodemailer')
 
 const userHelperFunctions = {
 
@@ -232,6 +235,93 @@ const userHelperFunctions = {
             ])
 
         } catch (error) { console.log(error) }
+
+    },
+
+    // Function used to send e-mail
+    sendMailToUser : async ( userMail, messageObject ) => {
+
+        try {
+
+            const { heading, mailSubject, messageBody } = messageObject
+            const { orderId, amountToPay } = messageBody
+            let productInfo // This stores all details of product
+            
+            if( heading === 'Order placed' || heading === 'Order cancelled' ) 
+                productInfo = await userHelperFunctions.getOrderedProducts( orderId )
+
+            // Setting up the configuration
+            const configuration = {
+
+                service : 'gmail',
+                auth : {
+
+                    user : EMAIL,
+                    pass : PASSWORD
+
+                }
+
+            }
+            
+            const transporter = nodemailer.createTransport( configuration ) // Creating transporter of nodemailer
+            const mailGenerator = new Mailgen({
+
+                // Creating Mailgen object
+                theme : 'default',
+                product : {
+
+                    name : 'Mailgen',
+                    link : 'https://mailgen.js/',
+                    copyright: 'Copyright © 2025 Mailgen. All rights reserved.',
+
+                }
+
+            })
+            const mailFormat = {
+
+                // Set up mail format
+                body : {
+
+                    title : 'E-commerce application',
+                    intro: heading,
+                    greeting: 'Dear',
+                    table : {
+
+                        data : productInfo && productInfo[0].productDetails.map(( product ) => ({
+
+                            item : product.name,
+                            quantity : product.count
+
+                        }))
+
+                    },
+                    outro: [`${
+                        amountToPay
+                            ? `Your total amount to pay is 
+                                ${ new Intl.NumberFormat('en-US', { style: 'currency', currency: 'INR' })
+                                .format(amountToPay).replace('₹', 'Rs ') }`
+                            : 'N/A'
+                    }`,'Need help, or have questions? Just reply to this email.'],
+                    signature: 'Sincerely'
+
+                }
+
+            }
+
+            const mail = mailGenerator.generate( mailFormat )
+            const messageFormat = {
+
+                from : EMAIL,
+                to : userMail,
+                subject : mailSubject,
+                html : mail
+
+            }
+
+            transporter.sendMail( messageFormat ).then()
+            .catch( error => console.log( error ) )
+
+        } catch ( error ) { console.log( error ) }
 
     }
 

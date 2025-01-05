@@ -397,6 +397,19 @@ router.post('/placeOrder', userAuth, async ( request, response, next ) => {
                 
             }
 
+            const emailParameters = {
+
+                heading : 'Order placed',
+                mailSubject : 'Order placed successfully',
+                messageBody : {
+    
+                    orderId : saveResponse._id,
+                    amountToPay : productsPrice > 200 ? productsPrice + 3 : productsPrice + 43
+    
+                },
+    
+            }
+            userHelperFunctions.sendMailToUser( email, emailParameters )
             response.status( 200 ).json({ 
 
                 message : 'Order placed successfully', 
@@ -405,7 +418,7 @@ router.post('/placeOrder', userAuth, async ( request, response, next ) => {
             
             })
                       
-        })     
+        })
         
     } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while placing order' }) }
     
@@ -474,7 +487,8 @@ router.put('/cancelOrder', userAuth, async ( request, response, next ) => {
 
         const { orderId } = request.body
         const orderData = await OrderModel.findOne({ _id : orderId })
-        if( orderData.status === 'cancelled' ) return response.status( 200 ).json({ warning : 'Order already cancelled' })
+        const { _id, status, amountToPay, email } = orderData
+        if( status === 'cancelled' ) return response.status( 200 ).json({ warning : 'Order already cancelled' })
         else {
     
             const updateResponse = await OrderModel.updateOne(
@@ -484,7 +498,24 @@ router.put('/cancelOrder', userAuth, async ( request, response, next ) => {
 
             )
             if( updateResponse.modifiedCount === 0 ) response.status( 200 ).json({ warning : 'Order not found' })
-            else response.status( 200 ).json({ message : 'Product cancelled successfully' })    
+            else {
+        
+                const emailParameters = {
+
+                    heading : 'Order cancelled',
+                    mailSubject : 'Order cancelled successfully',
+                    messageBody : {
+        
+                        orderId : _id, // This id used because, in getOrderedProducts function orderId is used in format of objectId
+                        amountToPay
+        
+                    },
+        
+                }
+                userHelperFunctions.sendMailToUser( email, emailParameters )
+                response.status( 200 ).json({ message : 'Product cancelled successfully' }) 
+        
+            }   
     
         }
 
