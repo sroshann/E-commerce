@@ -258,4 +258,59 @@ router.get('/getProductDetails/:productId', async ( request, response, next ) =>
 
 })
 
+// Update user details
+router.put('/updateUserDetails', userAuth, async ( request, response, next ) => {
+
+    try {
+
+        // These are the data which is to be updated, the data which not to update will have the value null
+        const { userId, fullname, email, phoneNumber, address, profileImage } = request.body
+
+        // Checks whether the newly provided details is an already existing details in DB, 
+        // if it exist then stop the updating process.
+        const user = await UserModel.findOne({
+
+            $or : [
+
+                { email : email },
+                { phoneNumber : phoneNumber }
+
+            ]
+
+        })
+
+        if( user ) {
+
+            if( user.email && user.email === email ) return response.status( 200 ).json({ warning : 'Email alrerady exist' })
+            else if( user.phoneNumber && user.phoneNumber === phoneNumber )
+                return response.status( 200 ).json({ warning : 'Phone number already exist' })
+
+        } else {
+
+            // The updateData object only have the data which is not null, so it will only update the changed data
+            const updateData = {}
+            if( fullname ) updateData.fullname = fullname
+            if( email ) updateData.email = email
+            if( phoneNumber ) updateData.phoneNumber = phoneNumber
+            if( address ) updateData.address = address
+            if( profileImage ) updateData.profileImage = profileImage
+
+            // Updates the user data
+            const updateResponse = await UserModel.updateOne(
+                
+                { _id : userId },
+                { $set : updateData }
+            
+            )
+
+            if( updateResponse.modifiedCount === 0 ) 
+                return response.status(200).json({ warning: 'An error occured while updating user details' })
+            else return response.status(200).json({ message : 'User details are updated successfully' })
+
+        }
+
+    } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while updating user details' }) }
+
+})
+
 module.exports = router;
