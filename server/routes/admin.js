@@ -1,10 +1,9 @@
 var express = require('express');
 const ProductModel = require('../models/product');
-const { adminAuth } = require('../middleware/authMiddleware');
 var router = express.Router();
 
 // ADMIN HOME
-router.get('/', adminAuth, async function (req, res, next) {
+router.get('/', async function (req, res, next) {
 
     try {
         
@@ -16,7 +15,7 @@ router.get('/', adminAuth, async function (req, res, next) {
 });
 
 // ADD PRODUCTS
-router.post('/addproduct', adminAuth, async (request, response, next) => {
+router.post('/addproduct', async (request, response, next) => {
 
     try {
 

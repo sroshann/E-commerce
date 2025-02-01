@@ -1,46 +1,29 @@
 const jwt = require('jsonwebtoken')
 const { JWT_SECRET } = require('../env')
-const { storeTemporaryVariables } = require('../helpers/auth')
-
-// Admin
-const adminAuth = ( request, response, next ) => {
-
-    try {
-
-        const token = request.headers.authorization.split(" ")[1]
-        if( token ) {
-
-            const decodeToken = jwt.verify( token, JWT_SECRET )
-            if( decodeToken.admin ) next()
-            else response.status( 500 ).json({ error : 'You are not admin' })
-
-        } else response.status( 500 ).json({ error : 'Please login' })
-
-    } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while checking the user' }) }
-
-}
+const UserModel = require('../models/user')
 
 // User
-const userAuth = ( request, response, next ) => {
+const userAuth = async ( request, response, next ) => {
 
     try {
 
-        const token = request.headers.authorization.split(" ")[1]
+        const token = request.cookies.jsonWebToken
         if( token ) {
 
-            jwt.verify( token, JWT_SECRET, ( error ) => {
+            const decode = jwt.verify( token, JWT_SECRET)
+            if( decode ) {
 
-                if( error ) {
+                const user = await UserModel.findById( decode.userId ).select('-password')
+                if( user ) {
 
-                    if( error.name === 'TokenExpiredError' ) 
-                        return response.status( 500 ).json({ error : 'Session expired please login' })
-                    else return response.status( 500 ).json({ error : 'Invalid token' })
+                    request.user = user
+                    next()
 
-                } else next()
+                } return response.status( 401 ).json({ error : 'User not found' })
 
-            } )
+            } else return response.status( 401 ).json({ error : 'Invalid token' })
  
-        } else return response.status( 500 ).json({ error : 'Session not found please log in' })
+        } else return response.status( 500 ).json({ error : 'Token not found' })
 
     } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while checking the user' }) }
 
@@ -50,7 +33,8 @@ const userAuth = ( request, response, next ) => {
 const resetPass = ( request, response, next ) => {
 
     try {
-        email = storeTemporaryVariables.email
+
+        email = request.email
         if( email ) next()
         else response.status( 500 ).json({ error : 'Provide username in login' })
 
@@ -58,4 +42,4 @@ const resetPass = ( request, response, next ) => {
 
 }
 
-module.exports = { adminAuth, resetPass, userAuth }
+module.exports = { resetPass, userAuth }

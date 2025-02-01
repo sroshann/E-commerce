@@ -3,13 +3,12 @@ const UserModel = require('../models/user')
 const ProductModel = require('../models/product')
 const router = express.Router()
 const bcrypt = require('bcrypt')
-const jwt = require('jsonwebtoken')
 const otpGenerator = require('otp-generator')
-const { storeTemporaryVariables } = require('../helpers/auth')
 const nodemailer = require('nodemailer')
 const Mailgen = require('mailgen')
-const { EMAIL, PASSWORD, JWT_SECRET } = require('../env')
+const { EMAIL, PASSWORD } = require('../env')
 const { resetPass, userAuth } = require('../middleware/authMiddleware')
+const generateToken = require('../lib/utils')
 
 // Signup
 router.post('/signup', async ( request, response, next ) => {
@@ -53,8 +52,8 @@ router.post('/signup', async ( request, response, next ) => {
     
             // Encrypting password
             schemaObj.password = bcrypt.hashSync( schemaObj.password , 10 )
-    
-            await schemaObj.save()
+            const newUser = await schemaObj.save()
+            generateToken( newUser._id, response )
             response.status( 200 ).json({ message : 'User created successfully' })
 
         }
@@ -72,38 +71,34 @@ router.post('/login', async ( request, response, next ) => {
         if ( user ) {
             
             // The user email is stored into temporary variable inorder to get it in mail sending
-            storeTemporaryVariables.email = user?.email
+            request.email = user?.email
             const compare = bcrypt.compareSync( request.body.password, user.password )
             if ( compare ) {
 
-                // Initializing token
-                const token = jwt.sign({ 
-                    
-                    userId : user._id,
-                    username : user.username, 
-                    admin : user.isAdmin || false
-                
-                }, JWT_SECRET, { expiresIn : '1h' })
-
-                // Initialozing it back to null if forgeot password is not used
-                storeTemporaryVariables.email = null
-
-                response.status(200).json({ 
-                    
-                    message : 'User authenticated',
-                    userId : user._id,
-                    username : user.username,
-                    admin : user.isAdmin || false,
-                    token 
-                
-                })
+                // generating token and assigning it into cookies
+                generateToken( user._id, response )
+                // Initialozing it back to null if forget password is not used
+                request.email = null
+                response.status(200).json({ message : 'User authenticated' })
 
             }
-            else response.status( 200 ).json({ error : 'Invalid password' })
+            else response.status( 401 ).json({ error : 'Invalid credentials' })
 
-        } else response.status( 500 ).json({ error : 'User not found' })
+        } else response.status( 401 ).json({ error : 'Invalid credentials' })
 
     } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while login' }) }
+
+})
+
+// Logout
+router.get('/logout', ( request, response ) => {
+
+    try {
+
+        response.cookie('jsonWebToken', '', { maxAge : 0 })
+        return response.status( 200 ).json({ message : 'Loged out successfully' })
+
+    } catch( error ) { return response.status( 500 ).json({ error : 'Error occured on logging out' }) }
 
 })
 
@@ -120,7 +115,7 @@ router.get('/mailOTP', resetPass, async ( request , response , next ) => {
             specialChars : false
 
         } )
-        storeTemporaryVariables.OTP = generatedOTP
+        request.OTP = generatedOTP
 
         // Sending the generated OTP to email of user
         let config = {
@@ -192,10 +187,10 @@ router.post('/validateOTP', resetPass, async ( request, response, next ) => {
     try {
 
         const { otp } = request.body
-        if ( otp === storeTemporaryVariables.OTP ) {
+        if ( otp === request.OTP ) {
 
             // OTP is true
-            storeTemporaryVariables.OTP = null // Resetting the value to null inorder to avoid conflicts
+            request.OTP = null // Resetting the value to null inorder to avoid conflicts
             response.status(200).json({ message: 'Change the password' })
 
         } else { response.status(500).json({ error: 'OTP mismatches, check the mail again' }) }
@@ -209,7 +204,7 @@ router.put('/changePassword', resetPass, async ( request, response, next ) =>{
 
     try {
 
-        const email = storeTemporaryVariables.email
+        const email = request.email
         const { password } = request.body
 
         const hashedPassword = bcrypt.hashSync( password , 10 )
@@ -217,7 +212,7 @@ router.put('/changePassword', resetPass, async ( request, response, next ) =>{
         if( user ) {
 
             await UserModel.updateOne({ email : email }, { password : hashedPassword })
-            storeTemporaryVariables.email = null // Resetting the value to null inorder to avoid conflicts
+            request.email = null // Resetting the value to null inorder to avoid conflicts
             response.status( 200 ).json({ message : 'Password updated' })
 
         } else response.status(500).json({ error: 'Some error on updating password' })
