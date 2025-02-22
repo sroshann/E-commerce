@@ -31,11 +31,11 @@ router.post('/signup', async ( request, response, next ) => {
 
             const { email , username , phoneNumber } = user
             if( username && username === request.body.username ) 
-                response.status(200).json({ error: 'Username already exist' })
+                response.status(401).json({ error: 'Username already exist' })
             else if( email && email === request.body.email ) 
-                response.status(200).json({ error: 'Email already exist' })
+                response.status(401).json({ error: 'Email already exist' })
             else if ( phoneNumber && phoneNumber === request.body.phoneNumber )
-                response.status( 200 ).json({ error : 'Phone number already exist' })
+                response.status( 401 ).json({ error : 'Phone number already exist' })
 
         } else {
 
