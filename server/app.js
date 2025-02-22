@@ -11,14 +11,19 @@ var userRouter = require('./routes/user');
 var adminRouter = require('./routes/admin');
 const commonRouter = require('./routes/common');
 
-const connectionString = 
-"mongodb+srv://shamilroshan390:123@cluster0.ncgk1.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+const connectionString =
+    "mongodb+srv://shamilroshan390:123@cluster0.ncgk1.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 app.use(logger('dev'));
-app.use(express.json( { limit: '10mb' } ));
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
-app.use(cors())
-app.use( fileUpload() )
+app.use(cors({
+
+    origin: "http://localhost:5173",
+    credentials: true // Important when sending cookies
+
+}))
+app.use(fileUpload())
 
 app.use('/', userRouter);
 app.use('/admin', adminRouter);
@@ -28,13 +33,13 @@ run = async () => {
 
     try {
 
-        await mongoose.connect( connectionString )
+        await mongoose.connect(connectionString)
         console.log('DB connected')
 
-    } catch ( error ) { console.error( error ) }
+    } catch (error) { console.error(error) }
 
 }
-run().catch( console.dir )
+run().catch(console.dir)
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

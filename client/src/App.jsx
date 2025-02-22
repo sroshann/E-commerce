@@ -1,11 +1,25 @@
-import './App.css'
+import { Route, Routes } from 'react-router-dom'
+import Landing from './Pages/Landing/Landing'
+import Login from './Pages/Login/Login'
+import { Toaster } from 'react-hot-toast'
 
 function App() {
 
     return (
+
         <>
-            APP
+
+            <Routes>
+
+                <Route element={ <Landing /> } path='/' />
+                <Route element={ <Login /> } path='/login' />
+
+            </Routes>
+
+            <Toaster />
+            
         </>
+        
     )
 }
 
