@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken')
 const { JWT_SECRET } = require('../env')
 const UserModel = require('../models/user')
+const storeTemporary = require('../helpers/store')
 
 // User
 const userAuth = async ( request, response, next ) => {
@@ -29,17 +30,16 @@ const userAuth = async ( request, response, next ) => {
 
 }
 
-// Rest password
-const resetPass = ( request, response, next ) => {
+// Mail send
+const mailSend = ( request, response, next ) => {
 
     try {
 
-        email = request.email
-        if( email ) next()
-        else response.status( 500 ).json({ error : 'Provide username in login' })
+        if( storeTemporary.email ) next()
+        else return response.status( 500 ).json({ error : 'Email is not send yet' })
 
-    } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while checking the entry' }) }
+    } catch ( error ) { return response.status( 500 ).json({ error : 'Error occured while checking the entry' }) }
 
 }
 
-module.exports = { resetPass, userAuth }
+module.exports = { mailSend, userAuth }

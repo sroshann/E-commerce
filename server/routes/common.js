@@ -7,8 +7,9 @@ const otpGenerator = require('otp-generator')
 const nodemailer = require('nodemailer')
 const Mailgen = require('mailgen')
 const { EMAIL, PASSWORD } = require('../env')
-const { resetPass, userAuth } = require('../middleware/authMiddleware')
+const { userAuth, mailSend } = require('../middleware/authMiddleware')
 const generateToken = require('../lib/utils')
+const storeTemporary = require('../helpers/store')
 
 // Signup
 router.post('/signup', async ( request, response, next ) => {
@@ -70,15 +71,11 @@ router.post('/login', async ( request, response, next ) => {
         const user = await UserModel.findOne({ email : request.body.email })
         if ( user ) {
             
-            // The user email is stored into temporary variable inorder to get it in mail sending
-            request.email = user?.email
             const compare = bcrypt.compareSync( request.body.password, user.password )
             if ( compare ) {
 
                 // generating token and assigning it into cookies
                 generateToken( user._id, response )
-                // Initialozing it back to null if forget password is not used
-                request.email = null
                 response.status(200).json({ message : 'User authenticated' })
 
             }
@@ -103,9 +100,11 @@ router.get('/logout', ( request, response ) => {
 })
 
 // Mail OTP
-router.get('/mailOTP', resetPass, async ( request , response , next ) => {
+router.post('/mailOTP', async ( request , response , next ) => {
 
     try {
+
+        const { email } = request.body
 
         // generating OTP with 6 charecters
         const generatedOTP = otpGenerator.generate( 6, {
@@ -115,7 +114,7 @@ router.get('/mailOTP', resetPass, async ( request , response , next ) => {
             specialChars : false
 
         } )
-        request.OTP = generatedOTP
+        storeTemporary.OTP = generatedOTP
 
         // Sending the generated OTP to email of user
         let config = {
@@ -168,29 +167,34 @@ router.get('/mailOTP', resetPass, async ( request , response , next ) => {
         let message = {
 
             from : EMAIL,
-            to : storeTemporaryVariables.email,
+            to : email,
             subject : 'Reset password',
             html : mail
 
         }
         
-        transporter.sendMail( message ).then( () => response.status( 200 ).json({ message : 'OTP send to your registered mail' }))
-        .catch( error => response.status( 500 ).json({ error : 'Error occured while mailing OTP' }))
+        transporter.sendMail( message ).then( () => {
 
-    } catch ( error ) { response.status(500).json({ error: 'Error occurred while mailing OTP' }) }
+            storeTemporary.email = email
+            return response.status( 200 ).json({ message : 'OTP send to your registered mail' })
+
+        })
+        .catch( error => { return response.status( 500 ).json({ error : 'Error occured while mailing OTP' }) })
+
+    } catch ( error ) { return response.status(500).json({ error: 'Error occurred while mailing OTP' }) }
 
 })
 
 // Validate OTP
-router.post('/validateOTP', resetPass, async ( request, response, next ) => {
+router.post('/validateOTP', mailSend, async ( request, response, next ) => {
 
     try {
 
         const { otp } = request.body
-        if ( otp === request.OTP ) {
+        if ( otp === storeTemporary.OTP ) {
 
             // OTP is true
-            request.OTP = null // Resetting the value to null inorder to avoid conflicts
+            storeTemporary.OTP = null // Resetting the value to null inorder to avoid conflicts
             response.status(200).json({ message: 'Change the password' })
 
         } else { response.status(500).json({ error: 'OTP mismatches, check the mail again' }) }
@@ -200,24 +204,25 @@ router.post('/validateOTP', resetPass, async ( request, response, next ) => {
 })
 
 // Change password
-router.put('/changePassword', resetPass, async ( request, response, next ) =>{
+router.put('/changePassword', mailSend, async ( request, response, next ) =>{
 
     try {
 
-        const email = request.email
         const { password } = request.body
-
         const hashedPassword = bcrypt.hashSync( password , 10 )
-        const user = await UserModel.findOne({ email : email })
+        const user = await UserModel.findOne({ email : storeTemporary.email })
         if( user ) {
 
-            await UserModel.updateOne({ email : email }, { password : hashedPassword })
-            request.email = null // Resetting the value to null inorder to avoid conflicts
-            response.status( 200 ).json({ message : 'Password updated' })
+            await UserModel.updateOne({ email : storeTemporary.email }, { password : hashedPassword })
+            storeTemporary.email = null // Resetting the value to null inorder to avoid conflicts
+            return response.status( 200 ).json({ message : 'Password updated' })
 
-        } else response.status(500).json({ error: 'Some error on updating password' })
+        } else return response.status(401).json({ error: 'Some error on updating password' })
 
-    } catch ( error ) { response.status(500).json({ error: 'Error occured while updating password' }) }
+    } catch ( error ) { 
+        
+        console.log( error )
+        return response.status(500).json({ error: 'Error occured while updating password' }) }
 
 })
 

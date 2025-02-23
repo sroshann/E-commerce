@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import Landing from './Pages/Landing/Landing'
 import Login from './Pages/Login/Login'
 import Signup from './Pages/Signup/Signup'
+import ForgotPassword from './Pages/Forgot Password/ForgotPassword'
 
 function App() {
 
@@ -16,6 +17,7 @@ function App() {
                 <Route element={ <Landing /> } path='/' />
                 <Route element={ <Login /> } path='/login' />
                 <Route element={ <Signup /> } path='/signup' />
+                <Route element={ <ForgotPassword /> } path='/forgotpassword' />
 
             </Routes>
 
