@@ -1,5 +1,4 @@
 const Mailgen = require("mailgen")
-const { EMAIL, PASSWORD } = require("../env")
 const CartModel = require("../models/cart")
 const OrderModel = require("../models/order")
 const WishlightModel = require("../models/wishlights")
@@ -256,8 +255,8 @@ const userHelperFunctions = {
                 service : 'gmail',
                 auth : {
 
-                    user : EMAIL,
-                    pass : PASSWORD
+                    user : process.env.EMAIL,
+                    pass : process.env.PASSWORD
 
                 }
 
@@ -311,7 +310,7 @@ const userHelperFunctions = {
             const mail = mailGenerator.generate( mailFormat )
             const messageFormat = {
 
-                from : EMAIL,
+                from : process.env.EMAIL,
                 to : userMail,
                 subject : mailSubject,
                 html : mail

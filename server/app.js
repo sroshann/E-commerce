@@ -4,6 +4,9 @@ var logger = require('morgan');
 const cors = require('cors')
 const fileUpload = require('express-fileupload')
 const mongoose = require('mongoose')
+const passport = require('passport')
+require('dotenv').config()
+require('./lib/passport')
 
 var app = express();
 
@@ -24,6 +27,8 @@ app.use(cors({
 
 }))
 app.use(fileUpload())
+app.use( passport.initialize() )
+app.use( passport.session() )
 
 app.use('/', userRouter);
 app.use('/admin', adminRouter);

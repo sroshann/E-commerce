@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken')
-const { JWT_SECRET } = require('../env')
 const UserModel = require('../models/user')
 const storeTemporary = require('../helpers/store')
 
@@ -11,7 +10,7 @@ const userAuth = async ( request, response, next ) => {
         const token = request.cookies.jsonWebToken
         if( token ) {
 
-            const decode = jwt.verify( token, JWT_SECRET)
+            const decode = jwt.verify( token, process.env.JWT_SECRET)
             if( decode ) {
 
                 const user = await UserModel.findById( decode.userId ).select('-password')

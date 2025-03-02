@@ -6,11 +6,13 @@ const bcrypt = require('bcrypt')
 const otpGenerator = require('otp-generator')
 const nodemailer = require('nodemailer')
 const Mailgen = require('mailgen')
-const { EMAIL, PASSWORD } = require('../env')
 const { userAuth, mailSend } = require('../middleware/authMiddleware')
 const generateToken = require('../lib/utils')
 const storeTemporary = require('../helpers/store')
+const { request } = require('../app')
+const passport = require('passport')
 
+// http://localhost:3001/common/google/redirect
 // Signup
 router.post('/signup', async ( request, response, next ) => {
 
@@ -62,6 +64,32 @@ router.post('/signup', async ( request, response, next ) => {
     } catch( error ) { return response.status( 500 ).json({ error: 'Error occurred while creating user' }) }
 
 })
+
+// Google sign up route
+router.get('/signup/google', passport.authenticate('google', { scope : ['profile', 'email'] }))
+
+// Google redirect route
+router.get('/google/redirect', passport.authenticate('google', { failureRedirect : '/login' }), 
+
+    ( request, response, next ) => {
+
+        try {
+
+            // Save user details in database
+            // We can use these same routes for login also
+            // but when it uses, the user is already exist in database then only login them 
+            // Otherwise save their details in database
+
+            // Also I need to send this user details to front-end and update the userStore
+            // Inorder to do it I need to store this user details in session or any temporary storage
+            // and then access it any another API request from front end
+
+        }
+        catch( error ) { console.log( error ) }
+
+    }
+
+)
 
 // Login
 router.post('/login', async ( request, response, next ) => {
@@ -124,8 +152,8 @@ router.post('/mailOTP', async ( request , response , next ) => {
             service : 'gmail',
             auth : {
 
-                user : EMAIL,
-                pass : PASSWORD
+                user : process.env.EMAIL,
+                pass : process.env.PASSWORD
 
             }
 
@@ -168,7 +196,7 @@ router.post('/mailOTP', async ( request , response , next ) => {
 
         let message = {
 
-            from : EMAIL,
+            from : process.env.EMAIL,
             to : email,
             subject : 'Reset password',
             html : mail
