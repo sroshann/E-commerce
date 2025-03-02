@@ -27,23 +27,22 @@ router.post('/signup', async ( request, response, next ) => {
             ]
 
         })
-
         if( user ) {
 
             const { email , username , phoneNumber } = user
             if( username && username === request.body.username ) 
-                response.status(401).json({ error: 'Username already exist' })
+                return response.status(401).json({ error: 'Username already exist' })
             else if( email && email === request.body.email ) 
-                response.status(401).json({ error: 'Email already exist' })
+                return response.status(401).json({ error: 'Email already exist' })
             else if ( phoneNumber && phoneNumber === request.body.phoneNumber )
-                response.status( 401 ).json({ error : 'Phone number already exist' })
+                return response.status( 401 ).json({ error : 'Phone number already exist' })
 
         } else {
 
             let schemaObj = new UserModel({
 
-                fullname : request?.body?.fullname,
-                username : request?.body?.username,
+                fullname : request?.body?.fullName,
+                username : request?.body?.userName,
                 email : request?.body?.email,
                 phoneNumber : request?.body?.phoneNumber,
                 password : request?.body?.password,
@@ -55,11 +54,12 @@ router.post('/signup', async ( request, response, next ) => {
             schemaObj.password = bcrypt.hashSync( schemaObj.password , 10 )
             const newUser = await schemaObj.save()
             generateToken( newUser._id, response )
-            response.status( 200 ).json({ message : 'User created successfully' })
+            const { password, __v, ...rest } = newUser.toObject()
+            return response.status( 200 ).json({ message : 'User created successfully', userDetails : rest })
 
         }
 
-    } catch( error ) { response.status( 500 ).json({ error: 'Error occurred while creating user' }) }
+    } catch( error ) { return response.status( 500 ).json({ error: 'Error occurred while creating user' }) }
 
 })
 
@@ -68,7 +68,8 @@ router.post('/login', async ( request, response, next ) => {
 
     try {
 
-        const user = await UserModel.findOne({ email : request.body.email })
+        // user is a Mongoose document, so we can convert it into a plain js object using lean
+        const user = await UserModel.findOne({ email : request.body.email }).lean()
         if ( user ) {
             
             const compare = bcrypt.compareSync( request.body.password, user.password )
@@ -76,14 +77,15 @@ router.post('/login', async ( request, response, next ) => {
 
                 // generating token and assigning it into cookies
                 generateToken( user._id, response )
-                response.status(200).json({ message : 'User authenticated' })
+                const { password, __v, ...rest } = user 
+                return response.status(200).json({ message : 'User authenticated', userDetails : rest })
 
             }
-            else response.status( 401 ).json({ error : 'Invalid credentials' })
+            else return response.status( 401 ).json({ error : 'Invalid credentials' })
 
-        } else response.status( 401 ).json({ error : 'Invalid credentials' })
+        } else return response.status( 401 ).json({ error : 'Invalid credentials' })
 
-    } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while login' }) }
+    } catch ( error ) { return response.status( 500 ).json({ error : 'Error occured while login' }) }
 
 })
 
@@ -313,4 +315,4 @@ router.put('/updateUserDetails', userAuth, async ( request, response, next ) => 
 
 })
 
-module.exports = router;
+module.exports = router

@@ -3,7 +3,7 @@ import { validateForgotPassword, validateLogin, validateSignup } from "../lib/va
 import { axiosInstance, toastStyle } from '../Constants/constants'
 import { useDispatch } from 'react-redux' // Used to access the state functions inside Redux
 import toast from 'react-hot-toast'
-import { setChangePassword, setMailSend } from '../Store/authenticationReducer'
+import { setChangePassword, setMailSend, setUserDetails } from '../Store/authenticationReducer'
 
 // Login formik
 export const useLoginFromik = () => {
@@ -12,17 +12,17 @@ export const useLoginFromik = () => {
 
     return useFormik({
 
-        initialValues : {
+        initialValues: {
 
-            email : '',
-            password : ''
+            email: '',
+            password: ''
 
         },
-        validate : validateLogin,
-        validateOnMount : false,
-        validateOnChange :  false,
-        validateOnBlur : false,
-        onSubmit : values => login( values )
+        validate: validateLogin,
+        validateOnMount: false,
+        validateOnChange: false,
+        validateOnBlur: false,
+        onSubmit: values => login(values)
 
     })
 
@@ -31,15 +31,18 @@ export const useLoginFromik = () => {
 // Login
 export const useLogin = () => {
 
-    return async ( values ) => {
+    const dispatch = useDispatch()
+    return async (values) => {
 
         try {
 
             const response = await axiosInstance.post('/common/login', values)
-            toast.success( response?.data?.message, { style : toastStyle } )
+            const { message, userDetails } = response?.data
+            dispatch( setUserDetails( userDetails ) ) // Setting the loged user details to store
+            toast.success( message, { style: toastStyle } )
 
-        } catch ( responseError ) 
-            { toast.error( responseError?.response?.data?.error, { style : toastStyle } ) }
+        } catch (responseError) 
+            { toast.error(responseError?.response?.data?.error, { style: toastStyle }) }
 
     }
 
@@ -48,15 +51,16 @@ export const useLogin = () => {
 // Logout
 export const useLogout = () => {
 
+    const dispatch = useDispatch()
     return async () => {
 
         try {
 
             const response = await axiosInstance.get('/common/logout')
-            toast.success( response?.data?.message, { style : toastStyle } )
+            dispatch( setUserDetails( null ) ) // Clearing userDetails
+            toast.success(response?.data?.message, { style: toastStyle })
 
-        } catch ( responseError ) 
-            { toast.error( responseError?.response?.data?.error, { style : toastStyle } ) }
+        } catch (responseError) { toast.error(responseError?.response?.data?.error, { style: toastStyle }) }
 
     }
 
@@ -67,24 +71,24 @@ export const useSignupFormik = () => {
 
     const signup = useSignup() // Signup hook
 
-    return useFormik ({
+    return useFormik({
 
-        initialValues : {
+        initialValues: {
 
-            fullName : '',
-            userName : '',
-            email : '',
-            phoneNumber : '',
-            address : '',
-            password : '',
-            confirmPassword : ''
+            fullName: '',
+            userName: '',
+            email: '',
+            phoneNumber: '',
+            address: '',
+            password: '',
+            confirmPassword: ''
 
         },
-        validate : validateSignup,
-        validateOnBlur : false,
-        validateOnChange : false,
-        validateOnMount : false,
-        onSubmit : values => signup( values )
+        validate: validateSignup,
+        validateOnBlur: false,
+        validateOnChange: false,
+        validateOnMount: false,
+        onSubmit: values => signup(values)
 
     })
 
@@ -93,15 +97,17 @@ export const useSignupFormik = () => {
 // Signup
 export const useSignup = () => {
 
-    return async ( values ) => {
+    const dispatch = useDispatch()
+    return async (values) => {
 
         try {
 
             const response = await axiosInstance.post('/common/signup', values)
-            toast.success( response?.data?.message, { style : toastStyle } )
+            const { message, userDetails } = response?.data
+            dispatch( setUserDetails( userDetails ) ) // Setting user details to store
+            toast.success( message, { style: toastStyle } )
 
-        } catch ( responseError ) 
-            { toast.error( responseError?.response?.data?.error, { style : toastStyle } ) }
+        } catch (responseError) { toast.error(responseError?.response?.data?.error, { style: toastStyle }) }
 
     }
 
@@ -116,39 +122,39 @@ export const useForgotPasswordFormik = () => {
 
     const emailFormik = useFormik({
 
-        initialValues : { email : '' },
-        validateOnBlur : false,
-        validateOnChange : false,
-        validateOnMount : false,
-        validate : validateForgotPassword.validateEmail,
-        onSubmit : value => mailOTP( value )
+        initialValues: { email: '' },
+        validateOnBlur: false,
+        validateOnChange: false,
+        validateOnMount: false,
+        validate: validateForgotPassword.validateEmail,
+        onSubmit: value => mailOTP(value)
 
     })
 
     const otpFormik = useFormik({
 
-        initialValues : { otp : '' },
-        validateOnBlur : false,
-        validateOnChange : false,
-        validateOnMount : false,
-        validate : validateForgotPassword.validateOTP,
-        onSubmit : value => matchOTP( value )
+        initialValues: { otp: '' },
+        validateOnBlur: false,
+        validateOnChange: false,
+        validateOnMount: false,
+        validate: validateForgotPassword.validateOTP,
+        onSubmit: value => matchOTP(value)
 
     })
 
     const passwordFormik = useFormik({
 
-        initialValues : { 
+        initialValues: {
 
-            password : '',
-            confirmPassword : ''
+            password: '',
+            confirmPassword: ''
 
         },
-        validateOnBlur : false,
-        validateOnMount : false,
-        validateOnChange : false,
-        validate : validateForgotPassword.validatePassword,
-        onSubmit : values => changePassword( values )
+        validateOnBlur: false,
+        validateOnMount: false,
+        validateOnChange: false,
+        validate: validateForgotPassword.validatePassword,
+        onSubmit: values => changePassword(values)
 
     })
 
@@ -160,19 +166,18 @@ export const useForgotPasswordFormik = () => {
 export const useMailOTP = () => {
 
     const dispatch = useDispatch()
-    return async ( values ) => {
-        
+    return async (values) => {
+
         try {
-            
-            const loading = toast.loading('Loading', { style : toastStyle })
+
+            const loading = toast.loading('Loading', { style: toastStyle })
             const response = await axiosInstance.post('/common/mailOTP', values)
-            dispatch( setMailSend() )
-            toast.remove( loading )
-            toast.success( response?.data?.message, { style : toastStyle } )
-            
-        } catch( responseError ) 
-        { toast.error( responseError?.response?.data?.error, { style : toastStyle } ) }
-        
+            dispatch(setMailSend())
+            toast.remove(loading)
+            toast.success(response?.data?.message, { style: toastStyle })
+
+        } catch (responseError) { toast.error(responseError?.response?.data?.error, { style: toastStyle }) }
+
     }
 
 }
@@ -181,16 +186,15 @@ export const useMailOTP = () => {
 export const useMatchOTP = () => {
 
     const dispatch = useDispatch()
-    return async ( value ) => {
+    return async (value) => {
 
         try {
 
             const response = await axiosInstance.post('/common/validateOTP', value)
-            dispatch( setChangePassword() )
-            toast.success( response?.data?.message, { style : toastStyle } )
+            dispatch(setChangePassword())
+            toast.success(response?.data?.message, { style: toastStyle })
 
-        } catch( responseError ) 
-            { toast.error( responseError?.response?.data?.error, { style : toastStyle } ) }
+        } catch (responseError) { toast.error(responseError?.response?.data?.error, { style: toastStyle }) }
 
     }
 
@@ -199,16 +203,15 @@ export const useMatchOTP = () => {
 // Change password
 export const useChangePassword = () => {
 
-    return async ( values ) => {
+    return async (values) => {
 
         try {
 
             const response = await axiosInstance.put('/common/changePassword', values)
-            toast.success( response?.data?.message, { style : toastStyle } )
+            toast.success(response?.data?.message, { style: toastStyle })
 
-        } catch ( responseError ) 
-            { toast.error( responseError?.response?.data?.error, { style : toastStyle } ) }
+        } catch (responseError) { toast.error(responseError?.response?.data?.error, { style: toastStyle }) }
 
     }
 
-}   
+}

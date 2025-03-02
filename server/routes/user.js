@@ -98,11 +98,11 @@ router.get('/getCartedProducts/:userId', userAuth, async ( request, response, ne
             // Calculating the total price of cart
             // 0 is the inintial value of sum
             const totalAmount = cartedItems.reduce( ( sum, item ) => sum + ( item.price * item.count ), 0 ) 
-            response.status( 200 ).json({ message : cartedItems, totalAmount })
+            return response.status( 200 ).json({ message : cartedItems, totalAmount })
     
         }
 
-    } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while getting carted products' }) }
+    } catch ( error ) { return response.status( 500 ).json({ error : 'Error occured while getting carted products' }) }
 
 })
 
@@ -151,12 +151,12 @@ router.put('/changeProductCount', userAuth, async ( request, response, next ) =>
                 { $inc : { 'cartedProducts.$.count' : increment } }
     
             )
-            if( updateResponse.modifiedCount === 0 ) response.status( 200 ).json({ warning : 'Product not found in cart' })
-            else response.status( 200 ).json({ message : 'Count updated successfully' })
+            if( updateResponse.modifiedCount === 0 ) return response.status( 200 ).json({ warning : 'Product not found in cart' })
+            else return response.status( 200 ).json({ message : 'Count updated successfully' })
 
         }
 
-    } catch ( error ) { response.status(500).json({ error : 'Error occured while changing the count' }) }
+    } catch ( error ) { return response.status(500).json({ error : 'Error occured while changing the count' }) }
 
 })
 
@@ -497,7 +497,7 @@ router.put('/cancelOrder', userAuth, async ( request, response, next ) => {
                 { $set : { status : 'cancelled' } }
 
             )
-            if( updateResponse.modifiedCount === 0 ) response.status( 200 ).json({ warning : 'Order not found' })
+            if( updateResponse.modifiedCount === 0 ) return response.status( 200 ).json({ warning : 'Order not found' })
             else {
         
                 const emailParameters = {

@@ -3,7 +3,8 @@ import { createSlice } from '@reduxjs/toolkit'
 const initialState = {
 
     mailSend : false,
-    changePassword : false
+    changePassword : false,
+    userDetails : {}
 
 }
 
@@ -15,11 +16,12 @@ const authSlice = createSlice({
     reducers : {
 
         setMailSend : ( state, action ) => { state.mailSend = !state.mailSend },
-        setChangePassword : ( state, action ) => { state.changePassword = !state.changePassword }
+        setChangePassword : ( state, action ) => { state.changePassword = !state.changePassword },
+        setUserDetails : ( state, action ) => { state.userDetails = action.payload }
 
     }
 
 })
 
-export const { setMailSend, setChangePassword } = authSlice.actions
+export const { setMailSend, setChangePassword, setUserDetails } = authSlice.actions
 export default authSlice.reducer
