@@ -1,10 +1,11 @@
 import React from "react";
 import "./Signup.css";
-import { useSignupFormik } from "../../Hooks/authenticationHooks";
+import { useGoogleAuth, useSignupFormik } from "../../Hooks/authenticationHooks";
 
 const Signup = () => {
 
     const formik = useSignupFormik()
+    const googleAuth = useGoogleAuth()
 
     return (
 
@@ -109,6 +110,8 @@ const Signup = () => {
                     <button type="submit">Submit</button>
 
                 </form>
+
+                <button onClick={ () => googleAuth() }>Sign up with google</button>
 
             </div>
 

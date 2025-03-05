@@ -15,24 +15,25 @@ var adminRouter = require('./routes/admin');
 const commonRouter = require('./routes/common');
 
 const connectionString =
-    "mongodb+srv://shamilroshan390:123@cluster0.ncgk1.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+"mongodb+srv://shamilroshan390:123@cluster0.ncgk1.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 app.use(logger('dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors({
-
-    origin: "http://localhost:5173",
+    
+    origin: process.env.CLIENT_URL,
     credentials: true // Important when sending cookies
-
+    
 }))
 app.use(fileUpload())
-app.use( passport.initialize() )
-app.use( passport.session() )
 
 app.use('/', userRouter);
 app.use('/admin', adminRouter);
 app.use('/common', commonRouter)
+
+app.use( passport.initialize() )
+app.use( passport.session() )
 
 run = async () => {
 

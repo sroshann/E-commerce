@@ -11,7 +11,7 @@ export const toastStyle = {
 
 export const axiosInstance = axios.create({
 
-    baseURL : 'http://localhost:3001/',
+    baseURL : 'http://localhost:3001',
     withCredentials: true, // Important when sending cookies
 
 })

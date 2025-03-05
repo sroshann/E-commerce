@@ -9,10 +9,8 @@ const Mailgen = require('mailgen')
 const { userAuth, mailSend } = require('../middleware/authMiddleware')
 const generateToken = require('../lib/utils')
 const storeTemporary = require('../helpers/store')
-const { request } = require('../app')
 const passport = require('passport')
 
-// http://localhost:3001/common/google/redirect
 // Signup
 router.post('/signup', async ( request, response, next ) => {
 
@@ -65,32 +63,6 @@ router.post('/signup', async ( request, response, next ) => {
 
 })
 
-// Google sign up route
-router.get('/signup/google', passport.authenticate('google', { scope : ['profile', 'email'] }))
-
-// Google redirect route
-router.get('/google/redirect', passport.authenticate('google', { failureRedirect : '/login' }), 
-
-    ( request, response, next ) => {
-
-        try {
-
-            // Save user details in database
-            // We can use these same routes for login also
-            // but when it uses, the user is already exist in database then only login them 
-            // Otherwise save their details in database
-
-            // Also I need to send this user details to front-end and update the userStore
-            // Inorder to do it I need to store this user details in session or any temporary storage
-            // and then access it any another API request from front end
-
-        }
-        catch( error ) { console.log( error ) }
-
-    }
-
-)
-
 // Login
 router.post('/login', async ( request, response, next ) => {
 
@@ -122,6 +94,9 @@ router.get('/logout', ( request, response ) => {
 
     try {
 
+        // Authenticated user details are stored in passport session 
+        // So it should cleared using this 'logout'
+        request.logout() 
         response.cookie('jsonWebToken', '', { maxAge : 0 })
         return response.status( 200 ).json({ message : 'Loged out successfully' })
 
@@ -342,5 +317,42 @@ router.put('/updateUserDetails', userAuth, async ( request, response, next ) => 
     } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while updating user details' }) }
 
 })
+
+// Google sign up route
+router.get('/signup/google', passport.authenticate('google', { scope : ['profile', 'email'] }))
+
+// Google redirect route
+router.get('/google/redirect', passport.authenticate('google', { 
+    
+    successRedirect : process.env.CLIENT_URL,
+    failureRedirect : '/google/auth/falied' 
+    
+}))
+
+// Google authentication success
+router.get('/google/auth/success', ( request, response, next ) => {
+
+    try {
+
+        // Authenticated user details are present in passport session
+        if( request.user ) {
+
+            return response.status( 200 ).json({
+
+                message : 'User logged in successfully',
+                userDetails : request.user
+    
+            })
+
+        } else return response.status( 401 ).json({ error : 'User not authorized' })
+
+    } catch( error ) 
+        { return response.status(500).json({ error : 'Error occured on getting user details on google auth' }) }
+
+})
+
+// Google authentication failed 
+router.get('/google/auth/failed', 
+    ( request, response, next ) => response.status(401).json({ error : 'Authentication failed' }))
 
 module.exports = router

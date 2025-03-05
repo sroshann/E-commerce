@@ -5,6 +5,28 @@ import { useDispatch } from 'react-redux' // Used to access the state functions 
 import toast from 'react-hot-toast'
 import { setChangePassword, setMailSend, setUserDetails } from '../Store/authenticationReducer'
 
+// Google authentication
+export const useGoogleAuth = () => {
+
+    return async () => {
+
+        try {
+
+            window.open(
+                
+                'http://localhost:3001/common/google/redirect',
+                "_self"
+            
+            )
+            // const response = await axiosInstance.get('/common/signup/google')
+            // console.log( response )
+
+        } catch( error ) {console.log( error ) }
+
+    }
+
+}
+
 // Login formik
 export const useLoginFromik = () => {
 

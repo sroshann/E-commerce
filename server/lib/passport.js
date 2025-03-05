@@ -9,15 +9,21 @@ passport.use(
 
             clientID : process.env.GOOGLE_CLIENT_ID,
             clientSecret : process.env.GOOGLE_CLIENT_SECRET,
-            callbackURL : 'http://localhost:3001/common/google/redirect'
+            callbackURL : 'http://localhost:3001/common/google/redirect',
+            scope : [ 'profile', 'email' ]
 
         },
         ( accessToken, refreshToken, profile, callBack ) => {
 
-            User.findOrCreate({ googleId : profile.id }, ( error, user ) => callBack( error, user ))
+            console.log( 'Passport.js profile = ', profile._json )
+            return callBack( null, profile )
 
         }
 
     )
 
 )
+
+// Authenticated user details are stored in passport session
+passport.serializeUser(( user, callBack ) => callBack( null, user ))
+passport.deserializeUser(( user, callBack ) => callBack( null, user ))
