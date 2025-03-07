@@ -96,7 +96,7 @@ router.get('/logout', ( request, response ) => {
 
         // Authenticated user details are stored in passport session 
         // So it should cleared using this 'logout'
-        request.logout() 
+        // request.logout() 
         response.cookie('jsonWebToken', '', { maxAge : 0 })
         return response.status( 200 ).json({ message : 'Loged out successfully' })
 

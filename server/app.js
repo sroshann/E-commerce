@@ -1,4 +1,4 @@
-var createError = require('http-errors');
+// var createError = require('http-errors');
 var express = require('express');
 var logger = require('morgan');
 const cors = require('cors')
@@ -7,6 +7,8 @@ const mongoose = require('mongoose')
 const passport = require('passport')
 require('dotenv').config()
 require('./lib/passport')
+const http = require('http')
+const session = require('express-session')
 
 var app = express();
 
@@ -23,10 +25,19 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors({
     
     origin: process.env.CLIENT_URL,
-    credentials: true // Important when sending cookies
+    credentials: true, // Important when sending cookies
+    allowedHeaders: ["Content-Type", "Authorization"] // Specify headers
     
 }))
 app.use(fileUpload())
+app.use(session({
+
+    secret: 'SECRET',  // Change this to a secure key
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false }   // Set secure: true if using HTTPS
+
+}))
 
 app.use('/', userRouter);
 app.use('/admin', adminRouter);
@@ -47,20 +58,24 @@ run = async () => {
 }
 run().catch(console.dir)
 
-// catch 404 and forward to error handler
-app.use(function (req, res, next) {
-    next(createError(404));
-});
+var server = http.createServer(app);
+var port = process.env.PORT || '3001'
+server.listen(port,()=> console.log('Server is running'));
 
-// error handler
-app.use(function (err, req, res, next) {
-    // set locals, only providing error in development
-    res.locals.message = err.message;
-    res.locals.error = req.app.get('env') === 'development' ? err : {};
+// // catch 404 and forward to error handler
+// app.use(function (req, res, next) {
+//     next(createError(404));
+// });
 
-    // render the error page
-    res.status(err.status || 500);
-    res.render('error');
-});
+// // error handler
+// app.use(function (err, req, res, next) {
+//     // set locals, only providing error in development
+//     res.locals.message = err.message;
+//     res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+//     // render the error page
+//     res.status(err.status || 500);
+//     res.render('error');
+// });
 
 module.exports = app;
