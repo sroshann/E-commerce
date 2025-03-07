@@ -7,7 +7,7 @@ const otpGenerator = require('otp-generator')
 const nodemailer = require('nodemailer')
 const Mailgen = require('mailgen')
 const { userAuth, mailSend } = require('../middleware/authMiddleware')
-const generateToken = require('../lib/utils')
+const generateToken = require('../lib/jwt')
 const storeTemporary = require('../helpers/store')
 const passport = require('passport')
 
