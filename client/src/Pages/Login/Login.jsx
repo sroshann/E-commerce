@@ -1,11 +1,13 @@
 import React from "react"
 import "./Login.css"
-import { useLoginFromik, useLogout } from "../../Hooks/authenticationHooks";
+import { useGoogleAuth, useLoginFromik } from "../../Hooks/authenticationHooks";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
 
     const formik = useLoginFromik() // Used to handle data validation
-    const logout = useLogout() // Used to logout
+    const googleAuth = useGoogleAuth() // Google authentication
+    const navigate = useNavigate()
 
     return (
 
@@ -41,11 +43,11 @@ const Login = () => {
 
                     </div>
                     <button type="submit" className="login-btn">Login</button>
-                    <p className="register-link">Forgot password ?</p>
-                    <p className="register-link">Don't have an account ? <a href="#">Sign Up</a></p>
+                    <p className="register-link" onClick={ () => navigate('/forgotpassword') }>Forgot password ?</p>
+                    <p className="register-link" onClick={ () => navigate('/signup') }>Don't have an account ? Sign Up</p>
 
                 </form>
-                <button onClick={ logout } type="submit" className="login-btn">Logout</button>
+                <button onClick={ googleAuth }>Google auth</button>
 
             </div>
 

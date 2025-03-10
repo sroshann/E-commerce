@@ -34,7 +34,8 @@ const userSchema = new mongoose.Schema({
 
     },
     profileImage : { type : String, },
-    isAdmin : { type : Boolean }
+    isAdmin : { type : Boolean },
+    googleId : { type : String }
 
 })
 

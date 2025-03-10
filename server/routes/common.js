@@ -10,6 +10,7 @@ const { userAuth, mailSend } = require('../middleware/authMiddleware')
 const generateToken = require('../lib/jwt')
 const storeTemporary = require('../helpers/store')
 const passport = require('passport')
+const jwt = require('jsonwebtoken')
 
 // Signup
 router.post('/signup', async ( request, response, next ) => {
@@ -68,7 +69,7 @@ router.post('/login', async ( request, response, next ) => {
 
     try {
 
-        // user is a Mongoose document, so we can convert it into a plain js object using lean
+        // user is a Mongoose document, so we can convert it into a plain js object using lean inorder to destrucure it
         const user = await UserModel.findOne({ email : request.body.email }).lean()
         if ( user ) {
             
@@ -96,7 +97,7 @@ router.get('/logout', ( request, response ) => {
 
         // Authenticated user details are stored in passport session 
         // So it should cleared using this 'logout'
-        // request.logout() 
+        // request.logOut() 
         response.cookie('jsonWebToken', '', { maxAge : 0 })
         return response.status( 200 ).json({ message : 'Loged out successfully' })
 
@@ -232,15 +233,25 @@ router.put('/changePassword', mailSend, async ( request, response, next ) =>{
 })
 
 // Get user details
-router.post('/getUserDetails', userAuth, async ( request, response, next ) => {
+router.get('/getUserDetails', async ( request, response, next ) => {
 
-    try {
+    try { 
+        
+        const token = request.cookies.jsonWebToken
+        if( token ) {
 
-        const user = await UserModel.findOne({ username : request.body.username })
-        if( user ) return response.status(200).json({ user })
-        else response.status(500).json({ error: 'User not found' })
+            const decode = jwt.verify( token, process.env.JWT_SECRET)
+            if( decode ) {
 
-    } catch ( error ) { response.status(500).json({ error: 'Error on getting user details' }) }
+                const user = await UserModel.findById( decode.userId ).select('-password')
+                return response.status(200).json({ user }) 
+
+            }
+
+        } else return
+    
+    } 
+    catch ( error ) { response.status(500).json({ error: 'Error on getting user details' }) }
 
 })
 
@@ -324,8 +335,8 @@ router.get('/signup/google', passport.authenticate('google', { scope : ['profile
 // Google redirect route
 router.get('/google/redirect', passport.authenticate('google', { 
     
-    successRedirect : process.env.CLIENT_URL,
-    failureRedirect : '/google/auth/falied' 
+    successRedirect : `${ process.env.CLIENT_URL }/home`,
+    failureRedirect : '/common/google/auth/falied' 
     
 }))
 
@@ -335,8 +346,9 @@ router.get('/google/auth/success', ( request, response, next ) => {
     try {
 
         // Authenticated user details are present in passport session
-        if( request.user ) {
+        if( request?.user ) {
 
+            generateToken( request?.user?._id, response )
             return response.status( 200 ).json({
 
                 message : 'User logged in successfully',

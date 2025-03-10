@@ -1,27 +1,54 @@
 import { useFormik } from 'formik'
 import { validateForgotPassword, validateLogin, validateSignup } from "../lib/validations"
 import { axiosInstance, toastStyle } from '../Constants/constants'
-import { useDispatch } from 'react-redux' // Used to access the state functions inside Redux
+import { useDispatch, useSelector } from 'react-redux' // Used to access the state functions inside Redux
 import toast from 'react-hot-toast'
-import { setChangePassword, setMailSend, setUserDetails } from '../Store/authenticationReducer'
+import { setChangePassword, setIsAuthenticated, setMailSend, setUserDetails } from '../Store/authenticationReducer'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 // Google authentication
 export const useGoogleAuth = () => {
 
+    const BASE_URL = import.meta.env.MODE === 'development' ? 'http://localhost:3001' : ''
     return async () => {
 
         try {
 
             window.open(
                 
-                'http://localhost:3001/common/google/redirect',
+                `${ BASE_URL }/common/google/redirect`,
                 "_self"
             
             )
-            // const response = await axiosInstance.get('/common/signup/google')
-            // console.log( response )
+            // Setting this variable inorder to retreive authenticated user data
+            // Localstorage is due
+            localStorage.setItem('googleAuth', JSON.stringify( true ))
+            
+        } catch( error ) { console.log( error ) }
+        
+    }
 
-        } catch( error ) {console.log( error ) }
+}
+
+// Get google authenticated data
+export const useGetGooglAuthenticatedData = () => {
+
+    const dispatch = useDispatch()
+
+    return async () => {
+
+        try {
+
+            const response = await axiosInstance.get('/common/google/auth/success')
+            const { message, userDetails } = response?.data
+            dispatch( setUserDetails( userDetails ) )
+            dispatch( setIsAuthenticated() )
+            localStorage.removeItem('googleAuth')
+            toast.success( message, { style: toastStyle } )
+
+
+        } catch( responseError ) 
+            { toast.error(responseError?.response?.data?.error, { style: toastStyle }) }
 
     }
 
@@ -54,6 +81,9 @@ export const useLoginFromik = () => {
 export const useLogin = () => {
 
     const dispatch = useDispatch()
+    const navigate = useNavigate()
+    const location = useLocation()
+
     return async (values) => {
 
         try {
@@ -61,7 +91,10 @@ export const useLogin = () => {
             const response = await axiosInstance.post('/common/login', values)
             const { message, userDetails } = response?.data
             dispatch( setUserDetails( userDetails ) ) // Setting the loged user details to store
+            dispatch( setIsAuthenticated() )
             toast.success( message, { style: toastStyle } )
+            // Navigate to previously used routes
+            navigate( location?.state?.from?.pathname || '/', { replace : true } )
 
         } catch (responseError) 
             { toast.error(responseError?.response?.data?.error, { style: toastStyle }) }
@@ -80,6 +113,7 @@ export const useLogout = () => {
 
             const response = await axiosInstance.get('/common/logout')
             dispatch( setUserDetails( null ) ) // Clearing userDetails
+            dispatch( setIsAuthenticated() )
             toast.success(response?.data?.message, { style: toastStyle })
 
         } catch (responseError) { toast.error(responseError?.response?.data?.error, { style: toastStyle }) }
@@ -127,6 +161,7 @@ export const useSignup = () => {
             const response = await axiosInstance.post('/common/signup', values)
             const { message, userDetails } = response?.data
             dispatch( setUserDetails( userDetails ) ) // Setting user details to store
+            dispatch( setIsAuthenticated() )
             toast.success( message, { style: toastStyle } )
 
         } catch (responseError) { toast.error(responseError?.response?.data?.error, { style: toastStyle }) }
@@ -233,6 +268,30 @@ export const useChangePassword = () => {
             toast.success(response?.data?.message, { style: toastStyle })
 
         } catch (responseError) { toast.error(responseError?.response?.data?.error, { style: toastStyle }) }
+
+    }
+
+}
+
+// Get user details
+export const useGetUserDetails = () => {
+
+    const { userDetails } = useSelector( state => state.authentication )
+    const dispatch = useDispatch()
+    return async () => {
+
+        try {
+
+            if( userDetails === null || Object.keys( userDetails ).length === 0 ) {
+
+                const response = await axiosInstance.get('/common/getUserDetails')
+                const { user } = response?.data
+                dispatch( setUserDetails( user ) )
+
+            } else return
+
+        } catch ( responseError ) 
+            { toast.error(responseError?.response?.data?.error, { style: toastStyle }) }
 
     }
 

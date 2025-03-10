@@ -1,11 +1,13 @@
 import React from "react";
 import "./Signup.css";
 import { useGoogleAuth, useSignupFormik } from "../../Hooks/authenticationHooks";
+import { useNavigate } from "react-router-dom";
 
 const Signup = () => {
 
     const formik = useSignupFormik()
-    const googleAuth = useGoogleAuth()
+    const googleAuth = useGoogleAuth() // Google authentication
+    const navigate = useNavigate()
 
     return (
 
@@ -112,6 +114,7 @@ const Signup = () => {
                 </form>
 
                 <button onClick={ () => googleAuth() }>Sign up with google</button>
+                <p onClick={ () => navigate('/login') }>Already have account? Login</p>
 
             </div>
 

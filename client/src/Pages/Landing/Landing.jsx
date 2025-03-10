@@ -1,11 +1,17 @@
 import React from 'react'
 import './Landing.css'
+import Navbar from '../../Components/Navbar/Navbar'
 
 function Landing() {
 
     return (
 
-        <div>Landing</div>
+        <div>
+            
+            <Navbar />
+            Landing
+            
+        </div>
 
     )
 

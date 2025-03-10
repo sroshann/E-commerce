@@ -4,7 +4,8 @@ const initialState = {
 
     mailSend : false,
     changePassword : false,
-    userDetails : {}
+    userDetails : {},
+    isAuthenticated : false
 
 }
 
@@ -17,11 +18,12 @@ const authSlice = createSlice({
 
         setMailSend : ( state, action ) => { state.mailSend = !state.mailSend },
         setChangePassword : ( state, action ) => { state.changePassword = !state.changePassword },
-        setUserDetails : ( state, action ) => { state.userDetails = action.payload }
+        setUserDetails : ( state, action ) => { state.userDetails = action.payload },
+        setIsAuthenticated : ( state ) => { state.isAuthenticated = !state.isAuthenticated }
 
     }
 
 })
 
-export const { setMailSend, setChangePassword, setUserDetails } = authSlice.actions
+export const { setMailSend, setChangePassword, setUserDetails, setIsAuthenticated } = authSlice.actions
 export default authSlice.reducer

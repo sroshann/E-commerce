@@ -25,7 +25,9 @@ const userAuth = async ( request, response, next ) => {
  
         } else return response.status( 500 ).json({ error : 'Token not found' })
 
-    } catch ( error ) { response.status( 500 ).json({ error : 'Error occured while checking the user' }) }
+    } catch ( error ) { 
+        console.log( error )
+        response.status( 500 ).json({ error : 'Error occured while checking the user' }) }
 
 }
 
